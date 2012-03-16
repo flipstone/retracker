@@ -16,6 +16,7 @@ import           Control.Applicative
 import           Control.Monad.Trans
 import           Control.Monad.State
 import           Data.ByteString (ByteString)
+import           Data.Int
 import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -23,6 +24,7 @@ import           Data.Time.Clock
 import           Snap.Core
 import           Snap.Snaplet
 import           Snap.Snaplet.Heist
+import           Snap.Snaplet.BackgroundQueue
 import           Snap.Util.FileServe
 import           Text.Templating.Heist
 import           Text.XmlHtml hiding (render)
@@ -70,11 +72,17 @@ echo = do
   where
     decodedParam p = fromMaybe "" <$> getParam p
 
+retrack :: Handler App App ()
+retrack = do
+  body <- (readRequestBody (1024*1042::Int64))
+  liftIO $ putStrLn (show body)
+  writeBS "Got it!"
 
 ------------------------------------------------------------------------------
 -- | The application's routes.
 routes :: [(ByteString, Handler App App ())]
 routes = [ ("/",            index)
+         , ("/retrack",     retrack)
          , ("/echo/:stuff", echo)
          , ("", with heist heistServe)
          , ("", serveDirectory "resources/static")
@@ -86,7 +94,8 @@ app :: SnapletInit App App
 app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     sTime <- liftIO getCurrentTime
     h <- nestSnaplet "heist" heist $ heistInit "resources/templates"
+    bq <- nestSnaplet "backroundQueue" backgroundQueue $ backgroundQueueInit
     addRoutes routes
-    return $ App h sTime
+    return $ App h bq sTime
 
 

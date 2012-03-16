@@ -11,12 +11,16 @@ module Application where
 
 import Data.Lens.Template
 import Data.Time.Clock
+import Data.ByteString
 
 import Snap.Snaplet
 import Snap.Snaplet.Heist
 
+import Snap.Snaplet.BackgroundQueue
+
 data App = App
     { _heist :: Snaplet (Heist App)
+    , _backgroundQueue :: Snaplet (BackgroundQueue ByteString)
     , _startTime :: UTCTime
     }
 
