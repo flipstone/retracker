@@ -18,11 +18,14 @@ import           Control.Monad.State
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.ByteString.Lazy (toChunks)
+import qualified Data.ByteString.Lazy as LB
 import           Data.Int
 import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Time.Clock
+import           Network.HTTP.Enumerator
+import qualified Network.HTTP.Enumerator as HTTP
 import           Snap.Core
 import           Snap.Snaplet
 import           Snap.Snaplet.Heist
@@ -41,61 +44,53 @@ import           Application
 -- Otherwise, the way the route table is currently set up, this action
 -- would be given every request.
 index :: Handler App App ()
-index = ifTop $ heistLocal (bindSplices indexSplices) $ render "index"
-  where
-    indexSplices =
-        [ ("start-time",   startTimeSplice)
-        , ("current-time", currentTimeSplice)
-        ]
+index = ifTop $ render "index"
 
 
 ------------------------------------------------------------------------------
--- | For your convenience, a splice which shows the start time.
-startTimeSplice :: Splice AppHandler
-startTimeSplice = do
-    time <- lift $ gets _startTime
-    return $ [TextNode $ T.pack $ show $ time]
-
-
-------------------------------------------------------------------------------
--- | For your convenience, a splice which shows the current time.
-currentTimeSplice :: Splice AppHandler
-currentTimeSplice = do
-    time <- liftIO getCurrentTime
-    return $ [TextNode $ T.pack $ show $ time]
-
-
-------------------------------------------------------------------------------
--- | Renders the echo page.
-echo :: Handler App App ()
-echo = do
-    message <- decodedParam "stuff"
-    heistLocal (bindString "message" (T.decodeUtf8 message)) $ render "echo"
-  where
-    decodedParam p = fromMaybe "" <$> getParam p
-
+-- | Adds to the queue
 retrack :: Handler App App ()
-retrack = do
+retrack = ifTop $ do
   body <- (readRequestBody (1024*1042::Int64))
   queueInBackground (B.concat (toChunks body))
   writeBS "Got it!\n"
+
+------------------------------------------------------------------------------
+-- | Posts request body to a site
+forwardRequest :: String -> ByteString -> IO ()
+forwardRequest url requestBody = do
+  urlRequest <- parseUrl url
+
+  let fullRequest = urlRequest {
+                      HTTP.method = "POST"
+                    , HTTP.requestBody = (RequestBodyBS requestBody)
+                    , HTTP.requestHeaders = [("Content-Type", "text/xml")]
+                    }
+
+  response <- withManager (httpLbs fullRequest)
+
+  if (statusCode response) >= 200 && (statusCode response) < 300
+    then putStrLn ("Successfully forwarded request to " ++ url)
+    else do
+          putStrLn (url ++ " returned code " ++ (show $ statusCode response))
+          putStrLn "Response was: "
+          LB.putStrLn (HTTP.responseBody response)
+
+  return ()
+
+------------------------------------------------------------------------------
+-- | The Workers
+workers :: [ByteString -> IO ()]
+workers = [ ]
 
 ------------------------------------------------------------------------------
 -- | The application's routes.
 routes :: [(ByteString, Handler App App ())]
 routes = [ ("/",            index)
          , ("/retrack",     retrack)
-         , ("/echo/:stuff", echo)
          , ("", with heist heistServe)
          , ("", serveDirectory "resources/static")
          ]
-
-------------------------------------------------------------------------------
--- | The Workers
-workers = [
-    \requestBody -> B.putStrLn requestBody
-  , \requestBody -> B.putStrLn requestBody
-  ]
 
 ------------------------------------------------------------------------------
 -- | The application initializer.

@@ -8,8 +8,11 @@ module Snap.Snaplet.BackgroundQueue
   , queueInBackground
   ) where
 
+import           Prelude hiding (catch)
+
 import           Control.Concurrent
 import           Control.Concurrent.Chan
+import           Control.Exception (catch, SomeException)
 import           Control.Monad
 import           Control.Monad.Trans
 
@@ -52,6 +55,12 @@ backgroundThread chan action = do
   job <- readChan chan
 
   case job of
-    (Job a) -> do action a
+    (Job a) -> do runAction (action a)
                   backgroundThread chan action
     Quit -> putStrLn "Stopping background thread"
+
+runAction :: IO () -> IO ()
+runAction action = do
+  catch action
+        (\e -> do let err = show (e :: SomeException)
+                  putStrLn err)
