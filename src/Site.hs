@@ -16,6 +16,8 @@ import           Control.Applicative
 import           Control.Monad.Trans
 import           Control.Monad.State
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import           Data.ByteString.Lazy (toChunks)
 import           Data.Int
 import           Data.Maybe
 import qualified Data.Text as T
@@ -75,7 +77,7 @@ echo = do
 retrack :: Handler App App ()
 retrack = do
   body <- (readRequestBody (1024*1042::Int64))
-  liftIO $ putStrLn (show body)
+  queueInBackground (B.concat (toChunks body))
   writeBS "Got it!"
 
 ------------------------------------------------------------------------------

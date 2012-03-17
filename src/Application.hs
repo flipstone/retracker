@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, MultiParamTypeClasses #-}
 
 {-
 
@@ -30,4 +30,7 @@ makeLens ''App
 
 instance HasHeist App where
     heistLens = subSnaplet heist
+
+instance HasBackgroundQueue App ByteString where
+    backgroundQueueLens = subSnaplet backgroundQueue
 
