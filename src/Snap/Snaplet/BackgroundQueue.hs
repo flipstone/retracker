@@ -10,6 +10,7 @@ module Snap.Snaplet.BackgroundQueue
 
 import           Control.Concurrent
 import           Control.Concurrent.Chan
+import           Control.Monad
 import           Control.Monad.Trans
 
 import           Data.Lens.Lazy
@@ -22,18 +23,18 @@ data Job a = Job a | Quit
 class HasBackgroundQueue a b where
   backgroundQueueLens :: Lens (Snaplet a) (Snaplet (BackgroundQueue b))
 
-backgroundQueueInit :: SnapletInit b (BackgroundQueue a)
-backgroundQueueInit = do
+backgroundQueueInit :: [a -> IO ()] -> SnapletInit b (BackgroundQueue a)
+backgroundQueueInit actions = do
   makeSnaplet "backgroundQueue" "" Nothing $ do
     chan <- liftIO $ newChan
 
-    liftIO $ forkIO $ backgroundThread chan
+    forM_ actions $ \action -> do
+      liftIO $ do
+        actionChan <- dupChan chan
+        forkIO $ backgroundThread actionChan action
 
-    onUnload $ do
-      putStrLn "Unloading"
-      writeChan chan Quit
+    onUnload $ writeChan chan Quit
 
-    liftIO $ putStrLn "Loading"
     return (BackgroundQueue chan)
 
 queueInBackground :: HasBackgroundQueue a b
@@ -46,11 +47,11 @@ queueInBackground jobData = do
     liftIO $ writeChan chan (Job jobData)
     return ()
 
-backgroundThread :: Chan (Job a) -> IO ()
-backgroundThread chan = do
+backgroundThread :: Chan (Job a) -> (a -> IO ()) -> IO ()
+backgroundThread chan action = do
   job <- readChan chan
 
   case job of
-    (Job a) -> do putStrLn "Got Job"
-                  backgroundThread chan
+    (Job a) -> do action a
+                  backgroundThread chan action
     Quit -> putStrLn "Stopping background thread"

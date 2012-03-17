@@ -78,7 +78,7 @@ retrack :: Handler App App ()
 retrack = do
   body <- (readRequestBody (1024*1042::Int64))
   queueInBackground (B.concat (toChunks body))
-  writeBS "Got it!"
+  writeBS "Got it!\n"
 
 ------------------------------------------------------------------------------
 -- | The application's routes.
@@ -91,12 +91,19 @@ routes = [ ("/",            index)
          ]
 
 ------------------------------------------------------------------------------
+-- | The Workers
+workers = [
+    \requestBody -> B.putStrLn requestBody
+  , \requestBody -> B.putStrLn requestBody
+  ]
+
+------------------------------------------------------------------------------
 -- | The application initializer.
 app :: SnapletInit App App
 app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     sTime <- liftIO getCurrentTime
     h <- nestSnaplet "heist" heist $ heistInit "resources/templates"
-    bq <- nestSnaplet "backroundQueue" backgroundQueue $ backgroundQueueInit
+    bq <- nestSnaplet "backroundQueue" backgroundQueue $ backgroundQueueInit workers
     addRoutes routes
     return $ App h bq sTime
 
