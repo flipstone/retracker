@@ -89,7 +89,7 @@ readDestinations = do
     mkForwarder line | isBlank line = Nothing
     mkForwarder line = Just (forwardRequest (trim line))
 
-    isBlank = not . any (not . isSpace)
+    isBlank = all isSpace
     trim = dropWhile isSpace . reverse . dropWhile isSpace . reverse
 
 ------------------------------------------------------------------------------
