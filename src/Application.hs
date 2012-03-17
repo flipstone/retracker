@@ -21,7 +21,6 @@ import Snap.Snaplet.BackgroundQueue
 data App = App
     { _heist :: Snaplet (Heist App)
     , _backgroundQueue :: Snaplet (BackgroundQueue ByteString)
-    , _startTime :: UTCTime
     }
 
 type AppHandler = Handler App App

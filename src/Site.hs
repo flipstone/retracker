@@ -19,7 +19,8 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.ByteString.Lazy (toChunks)
 import qualified Data.ByteString.Lazy as LB
-import           Data.Int
+import           Data.Char (isSpace)
+import           Data.Int (Int64)
 import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -79,9 +80,17 @@ forwardRequest url requestBody = do
   return ()
 
 ------------------------------------------------------------------------------
--- | The Workers
-workers :: [ByteString -> IO ()]
-workers = [ ]
+-- | Read the destintations
+readDestinations :: Initializer App App [ByteString -> IO ()]
+readDestinations = do
+    config <- liftIO $ readFile "resources/config/destinations"
+    return $ catMaybes (map mkForwarder (lines config))
+  where
+    mkForwarder line | isBlank line = Nothing
+    mkForwarder line = Just (forwardRequest (trim line))
+
+    isBlank = not . any (not . isSpace)
+    trim = dropWhile isSpace . reverse . dropWhile isSpace . reverse
 
 ------------------------------------------------------------------------------
 -- | The application's routes.
@@ -96,10 +105,14 @@ routes = [ ("/",            index)
 -- | The application initializer.
 app :: SnapletInit App App
 app = makeSnaplet "app" "An snaplet example application." Nothing $ do
-    sTime <- liftIO getCurrentTime
+    destinations <- readDestinations
+
+    liftIO $ putStrLn ("Configuring Retracker with " ++ (show $ length destinations) ++ " destinations")
+
     h <- nestSnaplet "heist" heist $ heistInit "resources/templates"
-    bq <- nestSnaplet "backroundQueue" backgroundQueue $ backgroundQueueInit workers
+    bq <- nestSnaplet "backroundQueue" backgroundQueue $ backgroundQueueInit destinations
+
     addRoutes routes
-    return $ App h bq sTime
+    return $ App h bq
 
 
