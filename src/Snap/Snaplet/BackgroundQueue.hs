@@ -11,7 +11,6 @@ module Snap.Snaplet.BackgroundQueue
 import           Prelude hiding (catch)
 
 import           Control.Concurrent
-import           Control.Concurrent.Chan
 import           Control.Exception (catch, SomeException)
 import           Control.Monad
 import           Control.Monad.Trans
@@ -30,6 +29,7 @@ backgroundQueueInit :: [a -> IO ()] -> SnapletInit b (BackgroundQueue a)
 backgroundQueueInit actions = do
   makeSnaplet "backgroundQueue" "" Nothing $ do
     chan <- liftIO $ newChan
+    liftIO $ forkIO $ emptyMasterChan chan
 
     forM_ actions $ \action -> do
       liftIO $ do
@@ -64,3 +64,7 @@ runAction action = do
   catch action
         (\e -> do let err = show (e :: SomeException)
                   putStrLn err)
+
+
+emptyMasterChan :: Chan a -> IO ()
+emptyMasterChan chan = readChan chan >> emptyMasterChan chan
