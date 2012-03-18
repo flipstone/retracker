@@ -34,7 +34,7 @@ posts to be forwarded to, then start it, like this:
     $ cd <retracker directory>
     $ vi resources/config/destinations
 
-<enter destinations urls, one per line>
+&lt;enter destinations urls, one per line&gt;
 
     $ ./cabal-dev/bin/retracker -p <port number>
 
