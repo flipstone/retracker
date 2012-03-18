@@ -29,15 +29,11 @@ then using cabal-dev to install retracker, like this:
     $ cabal-install .
 
 With retracker installed, first configure the destinations you want
-posts to be forwarded to, then start it, like this:
+posts to be forwarded to, then start it, like this (
+enter destinations urls, one per line):
 
     $ cd <retracker directory>
     $ vi resources/config/destinations
-
-
-enter destinations urls, one per line
-
-
     $ ./cabal-dev/bin/retracker -p <port number>
 
 This will start retracker on the given port number. Once retracker is
