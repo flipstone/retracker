@@ -1,0 +1,31 @@
+GIT
+  remote: git://github.com/flipstone/flipstone-deployment.git
+  revision: 1c6f64b5cd0996e6d7ae678ef32e5297d936d529
+  branch: 1c6f64b
+  specs:
+    flipstone-deployment (0.0.1)
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    capistrano (2.9.0)
+      highline
+      net-scp (>= 1.0.0)
+      net-sftp (>= 2.0.0)
+      net-ssh (>= 2.0.14)
+      net-ssh-gateway (>= 1.1.0)
+    highline (1.6.11)
+    net-scp (1.0.4)
+      net-ssh (>= 1.99.1)
+    net-sftp (2.0.5)
+      net-ssh (>= 2.0.9)
+    net-ssh (2.3.0)
+    net-ssh-gateway (1.1.0)
+      net-ssh (>= 1.99.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  capistrano (= 2.9)
+  flipstone-deployment!
