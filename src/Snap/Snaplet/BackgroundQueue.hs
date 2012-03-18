@@ -29,16 +29,16 @@ data Job a = Job a | Quit
 class HasBackgroundQueue a b where
   backgroundQueueLens :: Lens (Snaplet a) (Snaplet (BackgroundQueue b))
 
-sendToBackground :: BackgroundChan a -> Job a -> IO ()
-sendToBackground Nothing _ = return ()
-sendToBackground (Just c) job = writeChan c job
+writeBGChan :: BackgroundChan a -> Job a -> IO ()
+writeBGChan Nothing _ = return ()
+writeBGChan (Just c) job = writeChan c job
 
 backgroundQueueInit :: [Action a] -> SnapletInit b (BackgroundQueue a)
 backgroundQueueInit actions = do
   makeSnaplet "backgroundQueue" "" Nothing $ do
     chan <- liftIO $ foldM forkAction Nothing actions
 
-    onUnload $ sendToBackground chan Quit
+    onUnload $ writeBGChan chan Quit
 
     return (BackgroundQueue chan)
 
@@ -55,7 +55,7 @@ queueInBackground jobData = do
   with' backgroundQueueLens $ do
     snaplet <- getSnapletState
     let BackgroundQueue chan = getL snapletValue snaplet
-    liftIO $ sendToBackground chan (Job jobData)
+    liftIO $ writeBGChan chan (Job jobData)
     return ()
 
 backgroundThread :: Chan (Job a) -> (a -> IO ()) -> IO ()
