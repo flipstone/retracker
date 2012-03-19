@@ -21,6 +21,7 @@ import           Data.ByteString.Lazy (toChunks)
 import qualified Data.ByteString.Lazy as LB
 import           Data.Char (isSpace)
 import           Data.Int (Int64)
+import           Data.Lens.Lazy
 import           Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -29,8 +30,9 @@ import           Network.HTTP.Enumerator
 import qualified Network.HTTP.Enumerator as HTTP
 import           Snap.Core
 import           Snap.Snaplet
-import           Snap.Snaplet.Heist
 import           Snap.Snaplet.BackgroundQueue
+import           Snap.Snaplet.Heist
+import           Snap.Snaplet.Stats
 import           Snap.Util.FileServe
 import           Text.Templating.Heist
 import           Text.XmlHtml hiding (render)
@@ -54,6 +56,9 @@ retrack :: Handler App App ()
 retrack = ifTop $ do
   body <- (readRequestBody (1024*1042::Int64))
   queueInBackground (B.concat (toChunks body))
+
+  modifyStat "Posts Received" (Just . (maybe 1 (+1)))
+
   writeBS "Got it!\n"
 
 ------------------------------------------------------------------------------
@@ -111,8 +116,9 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
 
     h <- nestSnaplet "heist" heist $ heistInit "resources/templates"
     bq <- nestSnaplet "backroundQueue" backgroundQueue $ backgroundQueueInit destinations
+    stats <- nestSnaplet "stats" stats $ statsInit
 
     addRoutes routes
-    return $ App h bq
+    return $ App h bq stats
 
 

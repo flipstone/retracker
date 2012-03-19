@@ -13,6 +13,7 @@ import           Prelude hiding (catch)
 import           Control.Concurrent
 import           Control.Exception (catch, SomeException)
 import           Control.Monad
+import           Control.Monad.State
 import           Control.Monad.Trans
 
 import           Data.Lens.Lazy
@@ -53,8 +54,7 @@ queueInBackground :: HasBackgroundQueue a b
                   -> Handler a a ()
 queueInBackground jobData = do
   with' backgroundQueueLens $ do
-    snaplet <- getSnapletState
-    let BackgroundQueue chan = getL snapletValue snaplet
+    BackgroundQueue chan <- get
     liftIO $ writeBGChan chan (Job jobData)
     return ()
 

@@ -9,6 +9,12 @@
       <p>
         Retracker is currently running.
       </p>
+
+      <stats>
+        <div>
+          <statname/>: <statvalue/>
+        </div>
+      </stats>
     </div>
   </body>
 </html>

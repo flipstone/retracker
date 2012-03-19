@@ -14,13 +14,15 @@ import Data.Time.Clock
 import Data.ByteString
 
 import Snap.Snaplet
-import Snap.Snaplet.Heist
-
 import Snap.Snaplet.BackgroundQueue
+import Snap.Snaplet.Heist
+import Snap.Snaplet.Stats
+
 
 data App = App
     { _heist :: Snaplet (Heist App)
     , _backgroundQueue :: Snaplet (BackgroundQueue ByteString)
+    , _stats :: Snaplet (Stats)
     }
 
 type AppHandler = Handler App App
@@ -32,4 +34,7 @@ instance HasHeist App where
 
 instance HasBackgroundQueue App ByteString where
     backgroundQueueLens = subSnaplet backgroundQueue
+
+instance HasStats App where
+    statsLens = subSnaplet stats
 
