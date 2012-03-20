@@ -57,7 +57,7 @@ retrack = ifTop $ do
   body <- (readRequestBody (1024*1042::Int64))
   queueInBackground (B.concat (toChunks body))
 
-  modifyStat "Posts Received" (Just . (maybe 1 (+1)))
+  incrementStat "Posts Received"
 
   writeBS "Got it!\n"
 

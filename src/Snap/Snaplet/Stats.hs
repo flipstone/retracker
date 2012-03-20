@@ -7,6 +7,7 @@ module Snap.Snaplet.Stats
   , statsInit
   , initStatValue
   , modifyStat
+  , incrementStat
   ) where
 
 import           Control.Concurrent
@@ -38,6 +39,11 @@ modifyStat :: HasStats a
 modifyStat statName f = with' statsLens $ do
   Stats statsMap <- get
   liftIO $ modifyMVar_ statsMap (return . Map.alter f statName)
+
+incrementStat :: HasStats a
+              => String
+              -> Handler a a ()
+incrementStat statName = modifyStat statName (Just . (maybe 1 (+1)))
 
 initStatValue :: HasStats a
               => String
