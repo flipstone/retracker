@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Snap.Snaplet.Stats
   ( Stats
@@ -32,17 +33,27 @@ statsInit = do
     addSplices [("stats", statsSplice)]
     return (Stats statsMap)
 
-modifyStat :: HasStats a
+modifyStat :: ( HasStats a
+              , Monad (m a Stats)
+              , MonadIO (m a Stats)
+              , MonadSnaplet m
+              , MonadState Stats (m a Stats)
+              )
            => String
            -> (Maybe Integer -> Maybe Integer)
-           -> Handler a a ()
+           -> m a a ()
 modifyStat statName f = with' statsLens $ do
   Stats statsMap <- get
   liftIO $ modifyMVar_ statsMap (return . Map.alter f statName)
 
-incrementStat :: HasStats a
+incrementStat :: ( HasStats a
+                 , Monad (m a Stats)
+                 , MonadIO (m a Stats)
+                 , MonadSnaplet m
+                 , MonadState Stats (m a Stats)
+                 )
               => String
-              -> Handler a a ()
+              -> m a a ()
 incrementStat statName = modifyStat statName (Just . (maybe 1 (+1)))
 
 initStatValue :: HasStats a
