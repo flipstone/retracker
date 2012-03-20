@@ -118,6 +118,8 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     bq <- nestSnaplet "backroundQueue" backgroundQueue $ backgroundQueueInit destinations
     stats <- nestSnaplet "stats" stats $ statsInit
 
+    initStatValue "Posts Received" 0
+
     addRoutes routes
     return $ App h bq stats
 

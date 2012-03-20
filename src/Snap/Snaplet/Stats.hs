@@ -5,6 +5,7 @@ module Snap.Snaplet.Stats
   , HasStats
   , statsLens
   , statsInit
+  , initStatValue
   , modifyStat
   ) where
 
@@ -37,6 +38,15 @@ modifyStat :: HasStats a
 modifyStat statName f = with' statsLens $ do
   Stats statsMap <- get
   liftIO $ modifyMVar_ statsMap (return . Map.alter f statName)
+
+initStatValue :: HasStats a
+              => String
+              -> Integer
+              -> Initializer a a ()
+initStatValue statName value = with' statsLens $ do
+  addPostInitHook $ \(Stats statsMap) -> do
+    modifyMVar_ statsMap (return . Map.insert statName value)
+    return (Stats statsMap)
 
 statsSplice :: SnapletSplice b Stats
 statsSplice = do
