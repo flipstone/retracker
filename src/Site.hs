@@ -30,7 +30,8 @@ import           Network.HTTP.Enumerator
 import qualified Network.HTTP.Enumerator as HTTP
 import           Snap.Core
 import           Snap.Snaplet
-import           Snap.Snaplet.BackgroundQueue
+import           Snap.Snaplet.BackgroundQueue hiding (Handler)
+import qualified Snap.Snaplet.BackgroundQueue as BG
 import           Snap.Snaplet.Heist
 import           Snap.Snaplet.Stats
 import           Snap.Util.FileServe
@@ -63,9 +64,9 @@ retrack = ifTop $ do
 
 ------------------------------------------------------------------------------
 -- | Posts request body to a site
-forwardRequest :: String -> ByteString -> IO ()
+forwardRequest :: String -> ByteString -> BG.Handler App App ()
 forwardRequest url requestBody = do
-  urlRequest <- parseUrl url
+  urlRequest <- liftIO $ parseUrl url
 
   let fullRequest = urlRequest {
                       HTTP.method = "POST"
@@ -73,20 +74,24 @@ forwardRequest url requestBody = do
                     , HTTP.requestHeaders = [("Content-Type", "text/xml")]
                     }
 
-  response <- withManager (httpLbs fullRequest)
+  response <- liftIO $ withManager (httpLbs fullRequest)
 
   if (statusCode response) >= 200 && (statusCode response) < 300
-    then putStrLn ("Successfully forwarded request to " ++ url)
+    then do
+          incrementStat "Posts Forwarded"
+          liftIO $ putStrLn ("Successfully forwarded request to " ++ url)
     else do
-          putStrLn (url ++ " returned code " ++ (show $ statusCode response))
-          putStrLn "Response was: "
-          LB.putStrLn (HTTP.responseBody response)
+          incrementStat "Forwarding Errors"
+          liftIO $ do
+            putStrLn (url ++ " returned code " ++ (show $ statusCode response))
+            putStrLn "Response was: "
+            LB.putStrLn (HTTP.responseBody response)
 
   return ()
 
 ------------------------------------------------------------------------------
 -- | Read the destintations
-readDestinations :: Initializer App App [ByteString -> IO ()]
+readDestinations :: Initializer App App [ByteString -> BG.Handler App App ()]
 readDestinations = do
     config <- liftIO $ readFile "resources/config/destinations"
     return $ catMaybes (map mkForwarder (lines config))
@@ -119,6 +124,8 @@ app = makeSnaplet "app" "An snaplet example application." Nothing $ do
     stats <- nestSnaplet "stats" stats $ statsInit
 
     initStatValue "Posts Received" 0
+    initStatValue "Posts Forwarded" 0
+    initStatValue "Forwarding Errors" 0
 
     addRoutes routes
     return $ App h bq stats

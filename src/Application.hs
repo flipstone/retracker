@@ -14,14 +14,14 @@ import Data.Time.Clock
 import Data.ByteString
 
 import Snap.Snaplet
-import Snap.Snaplet.BackgroundQueue
+import Snap.Snaplet.BackgroundQueue hiding (Handler)
 import Snap.Snaplet.Heist
 import Snap.Snaplet.Stats
 
 
 data App = App
     { _heist :: Snaplet (Heist App)
-    , _backgroundQueue :: Snaplet (BackgroundQueue ByteString)
+    , _backgroundQueue :: Snaplet (BackgroundQueue ByteString App)
     , _stats :: Snaplet (Stats)
     }
 

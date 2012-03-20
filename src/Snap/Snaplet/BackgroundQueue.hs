@@ -5,6 +5,7 @@
 
 module Snap.Snaplet.BackgroundQueue
   ( BackgroundQueue
+  , Handler
   , HasBackgroundQueue
   , backgroundQueueLens
   , backgroundQueueInit
@@ -39,7 +40,7 @@ data LensedIO b v a = LensedIO {
 
 newtype Handler b v a =
    Handler (LensedIO (Snaplet b) (Snaplet v) a)
- deriving (Monad, MonadState (Snaplet v))
+ deriving (Monad, MonadIO)
 
 instance Monad (LensedIO b v) where
   return a = LensedIO $ \_ b v -> return (b, v, a)
@@ -48,9 +49,23 @@ instance Monad (LensedIO b v) where
                                     let LensedIO h' = f a
                                     h' l b' v'
 
+instance MonadIO (LensedIO b v) where
+  liftIO action = LensedIO $ \l b v -> do
+                    a <- action
+                    return (b, v, a)
+
 instance MonadState v (LensedIO b v) where
   get = LensedIO $ \_ b v -> return (b, v, v)
   put v' = LensedIO $ \_ b _ -> return (b, v', ())
+
+instance MonadState v (Handler b v) where
+  get = Handler $ do
+          state <- get
+          return $ getL snapletValue state
+
+  put v = Handler $ do
+          state <- get
+          put (setL snapletValue v state)
 
 instance MonadSnaplet Handler where
   withTop' lens (Handler lensedIO) = Handler $ LensedIO $ \l b v -> do
@@ -100,7 +115,7 @@ queueInBackground :: HasBackgroundQueue a b
                   -> Snaplet.Handler a a ()
 queueInBackground jobData = do
   appLens <- getLens
-  appState <- get
+  appState <- getSnapletState
   with' backgroundQueueLens $ do
     BackgroundQueue chan <- get
     liftIO $ writeBGChan chan (Job jobData appLens appState)
