@@ -50,7 +50,7 @@ A Few Details
 -------------
 
 Retracker accepts posts and puts them on an in-memory queue to be processed.
-It will report a success back to the original poster befare this queue has
+It will report a success back to the original poster before this queue has
 had a chance to process, so no forwarding errors will be propagated back.
 
 The processing queue is processed serially for each configured destination.
